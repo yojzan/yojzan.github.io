@@ -109,13 +109,14 @@ article {
   padding: 100px 28px 140px;
 }
 
-article h1 {
+   article h1 {
   font-size: 58px;
   line-height: 1.05;
   letter-spacing: -1.5px;
-  margin: 0;
+  margin: 0 0 120px 0; /* controls gap below title */
   max-width: 12ch;
 }
+
 
 article .meta {
   margin-top: 18px;
@@ -161,14 +162,7 @@ article a:hover {
     margin-bottom: 70px;
   }
 
-    article h1 {
-  font-size: 58px;
-  line-height: 1.05;
-  letter-spacing: -1.5px;
-  margin: 0 0 120px 0; /* controls gap below title */
-  max-width: 12ch;
-}
-
+ 
 .back-link {
   display: inline-block;
   margin-bottom: 80px;
