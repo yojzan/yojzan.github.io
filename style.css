@@ -160,4 +160,24 @@ article a:hover {
   article .meta {
     margin-bottom: 70px;
   }
+
+    article h1 {
+  font-size: 58px;
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  margin: 0 0 120px 0; /* controls gap below title */
+  max-width: 12ch;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 80px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
 }
