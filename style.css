@@ -205,3 +205,18 @@ body.letter h1,
 body.letter a {
   color: #ff69b4;
 }
+
+ul li a {
+  display: inline-block;
+  font-size: 20px;
+  letter-spacing: 0.3px;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 3px;
+}
+
+ul li a:hover {
+  color: #ff69b4;
+  border-bottom-color: #ff69b4;
+  padding-left: 6px;
+}
