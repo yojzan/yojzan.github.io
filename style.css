@@ -108,18 +108,17 @@ article {
   padding: 100px 28px 140px;
 }
 
-   article h1 {
+article h1 {
   font-size: 58px;
   line-height: 1.05;
   letter-spacing: -1.5px;
-  margin: 0 0 120px 0; /* controls gap below title */
+  margin: 0 0 120px 0;
   max-width: 12ch;
 }
 
-
 article .meta {
   margin-top: 18px;
-  margin-bottom: 100px; /* large gap like the screenshot */
+  margin-bottom: 100px;
   color: var(--muted);
   font-size: 13px;
   letter-spacing: 0.4px;
@@ -146,6 +145,20 @@ article a:hover {
   border-bottom-color: var(--text);
 }
 
+.back-link {
+  display: inline-block;
+  margin-bottom: 80px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+/* Mobile */
+
 @media (max-width: 700px) {
   header h1,
   article h1 {
@@ -160,17 +173,16 @@ article a:hover {
   article .meta {
     margin-bottom: 70px;
   }
-
- 
-.back-link {
-  display: inline-block;
-  margin-bottom: 80px;
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 15px;
 }
 
-.back-link:hover {
-  color: var(--text);
+/* Letter page (pink theme) */
+
+body.letter {
+  background: #2a0a14;
+  color: #ffb6c8;
 }
+
+body.letter h1,
+body.letter a {
+  color: #ff69b4;
 }
