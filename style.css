@@ -220,3 +220,10 @@ ul li a:hover {
   border-bottom-color: #ff69b4;
   padding-left: 6px;
 }
+
+@media (hover: hover) {
+  li a:hover {
+    border-bottom-color: var(--accent);
+    padding-left: 6px;
+  }
+}
