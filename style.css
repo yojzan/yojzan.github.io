@@ -182,6 +182,25 @@ body.letter {
   color: #ffb6c8;
 }
 
+nav li {
+  margin: 22px 0;
+}
+
+nav li a {
+  display: inline-block;
+  font-size: 28px;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 4px;
+}
+
+nav li a:hover {
+  color: #ff69b4;
+  border-bottom-color: #ff69b4;
+  padding-left: 8px;
+}
+
 body.letter h1,
 body.letter a {
   color: #ff69b4;
