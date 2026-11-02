@@ -358,7 +358,7 @@ void main() {
   // Static packed uniforms, softened for readable text.
   gl.uniform4f(U('u_shape'), 1.48, 0.45, 0.10, 0.00);
   gl.uniform4f(U('u_surface'), 2.40, 0.60, -0.25, 1.00);
-  gl.uniform4f(U('u_finish'), 0.00, 0.00, 0.005, 0.00);
+  gl.uniform4f(U('u_finish'), 0.00, 0.00, 0.008, 0.00);
   gl.uniform4f(U('u_transform'), 2926.0, 0.00, 0.00, 0.0);
   gl.uniform4f(U('u_space'), 0.00, 0.00, 0.00, 0.00); // pointer unused
   gl.uniform4f(U('u_cursor'), 0.00, 2.0, 0.65, 0.46); // cursor off
