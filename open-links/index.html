@@ -25,6 +25,20 @@
   <a href="../index.html">Back to Home</a>
 </footer>
 
+    <script>
+  (function () {
+    const h1 = document.querySelector('header h1');
+    if (!h1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const text = h1.textContent;
+    h1.textContent = '';
+    let i = 0;
+    const timer = setInterval(() => {
+      h1.textContent += text[i++];
+      if (i >= text.length) clearInterval(timer);
+    }, 120);
+  })();
+</script>
+  
   <script src="/halftone-background.js" defer></script>
 </body>
 </html>
