@@ -342,7 +342,8 @@ void main() {
 
   const U = (name) => gl.getUniformLocation(program, name);
 
-  // Colours, low → high. First four used; the array is padded to 8.
+  // Colours, low → high. Only the first three are used (colour count 3.0),
+  // so the near-white #FFD6E7 is dropped; the array is padded to 8.
   const hexToRgb = (hex) => [
     parseInt(hex.slice(1, 3), 16) / 255,
     parseInt(hex.slice(3, 5), 16) / 255,
@@ -354,10 +355,10 @@ void main() {
   });
   gl.uniform3fv(U('u_colors'), colours);
 
-  // Static packed uniforms (values from the shader header).
-  gl.uniform4f(U('u_shape'), 1.48, 0.88, 0.25, 0.00);
-  gl.uniform4f(U('u_surface'), 2.40, 0.91, -0.25, 1.00);
-  gl.uniform4f(U('u_finish'), 0.00, 0.00, 0.000, 0.06);
+  // Static packed uniforms, softened for readable text.
+  gl.uniform4f(U('u_shape'), 1.48, 0.45, 0.10, 0.00);
+  gl.uniform4f(U('u_surface'), 2.40, 0.60, -0.25, 1.00);
+  gl.uniform4f(U('u_finish'), 0.00, 0.00, 0.000, 0.00);
   gl.uniform4f(U('u_transform'), 2926.0, 0.00, 0.00, 0.0);
   gl.uniform4f(U('u_space'), 0.00, 0.00, 0.00, 0.00); // pointer unused
   gl.uniform4f(U('u_cursor'), 0.00, 2.0, 0.65, 0.46); // cursor off
@@ -379,7 +380,7 @@ void main() {
 
   function frame(now) {
     const seconds = (now - startTime) / 1000;
-    gl.uniform4f(uScene, canvas.width, canvas.height, seconds * 1.43, 4.0);
+    gl.uniform4f(uScene, canvas.width, canvas.height, seconds * 0.9, 3.0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     rafId = requestAnimationFrame(frame);
   }
