@@ -145,14 +145,19 @@ a:focus-visible {
   outline: none;
 }
 
-/* Article body */
+/* Dates and small labels, on any page */
 
-article .meta {
-  margin: 0 0 40px;
+.meta {
   font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* Article body */
+
+article .meta {
+  margin: 0 0 40px;
 }
 
 article p {
