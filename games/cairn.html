@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cairn</title>
+
+  <link rel="stylesheet" href="/style.css">
+
+  <style>
+    .game-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .how {
+      margin: 0;
+      font-size: 15px;
+      color: var(--muted);
+      text-align: center;
+      max-width: 420px;
+    }
+
+    .hud {
+      display: flex;
+      gap: 24px;
+      font-size: 17px;
+      color: var(--muted);
+    }
+    .hud strong {
+      color: var(--heading);
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      font: inherit;
+      font-size: 16px;
+      padding: 8px 14px;
+      background: transparent;
+      color: var(--heading);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .btn:hover,
+    .btn:focus-visible {
+      border-color: var(--heading);
+      outline: none;
+    }
+    .btn.big {
+      font-size: 19px;
+      padding: 10px 26px;
+    }
+
+    .board-wrap {
+      position: relative;
+      max-width: 100%;
+    }
+
+    #board {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px var(--line);
+      touch-action: none;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px;
+      text-align: center;
+      background: rgba(14, 18, 17, 0.8);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+    .overlay[hidden] {
+      display: none;
+    }
+    .overlay h2 {
+      font-family: var(--font-title);
+      font-size: 48px;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--heading);
+      margin: 0;
+    }
+    .overlay p {
+      margin: 0;
+      font-size: 17px;
+      color: var(--muted);
+      max-width: 320px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Cairn</h1>
+  <p>Stack the stones. Keep the balance.</p>
+</header>
+
+<main>
+
+  <a class="back-link" href="index.html">Back to games</a>
+
+  <div class="game-wrap">
+
+    <div class="hud">
+      <span>Stones <strong id="score">0</strong></span>
+      <span>Best <strong id="best">0</strong></span>
+      <span>Balance <strong id="lives">●●●</strong></span>
+    </div>
+
+    <div class="board-wrap" id="wrap">
+      <canvas id="board" aria-label="Cairn board. Press space, enter, or tap to drop a stone."></canvas>
+      <div class="overlay" id="overlay" aria-live="polite">
+        <h2 id="ov-title"></h2>
+        <p id="ov-text"></p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button type="button" class="btn big" id="drop">Drop stone</button>
+      <button type="button" class="btn" id="restart">Restart</button>
+    </div>
+
+    <p class="how">Space, Enter, or a tap drops the stone. A stone must land with its centre over the one beneath it. The whole tower has a balance point, and if that point moves past the edge of any stone, everything above that stone tips over and falls. You have three chances. Your best count is saved on this device.</p>
+
+  </div>
+
+</main>
+
+<script>
+  (function () {
+    const BEST_KEY = 'cairnBest';
+    const MAX_LIVES = 3;
+    const GRAVITY = 2200;
+    const TIP_ANGLE = 1.05; // radians a section must turn before it has fallen away
+
+    const BG = '#0b0f0e';
+    const GROUND = '#1c2b25';
+    const LINE = '#2c4d41';
+    const BASE = '#2c4d41';
+    const CARRY = '#d8b8d0';
+    const STONES = ['#7f9686', '#a3b98a', '#557f6e', '#c39bbd', '#8fa3a0', '#b8c9a0'];
+    const PRAISE = ['Steady', 'Balanced', 'Nicely placed', 'Holding', 'Well set'];
+
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const wrap = document.getElementById('wrap');
+    const overlay = document.getElementById('overlay');
+    const ovTitle = document.getElementById('ov-title');
+    const ovText = document.getElementById('ov-text');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const livesEl = document.getElementById('lives');
+    const dropBtn = document.getElementById('drop');
+    const restartBtn = document.getElementById('restart');
+
+    // Widths and positions are stored as fractions of the board width,
+    // so the game still fits when the window is resized.
+    let W = 0;
+    let H = 0;
+    let dpr = 1;
+    let groundY = 0;
+
+    let stack = [];      // bottom to top: { x, w, h }
+    let carry = null;    // the stone hanging from the crane: { w, h }
+    let dropping = null; // a stone in the air: { x, w, h, y, vy, ok, lean }
+    let debris = [];     // stones that missed and are rolling away
+    let chunks = [];     // sections that have tipped over and are falling
+
+    let state = 'ready'; // ready | playing | over
+    let score = 0;
+    let lives = MAX_LIVES;
+    let doomed = false;  // out of balance; the game ends once the fall settles
+    let best = loadBest();
+
+    let clock = 0;
+    let lastNow = 0;
+    let shift = 0;
+    let flashText = '';
+    let flashTime = 0;
+
+    /* Storage */
+
+    function loadBest() {
+      try {
+        return parseInt(localStorage.getItem(BEST_KEY), 10) || 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    function saveBest() {
+      try {
+        localStorage.setItem(BEST_KEY, String(best));
+      } catch (e) {}
+    }
+
+    /* Helpers */
+
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function drawStone(cx, y, w, h, fill) {
+      const r = Math.min(9, h / 2, w / 2);
+      ctx.fillStyle = fill;
+      roundRect(cx - w / 2, y, w, h, r);
+      ctx.fill();
+
+      // A soft highlight along the top, so each stone looks a little worn.
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      roundRect(cx - w / 2 + 3, y + 3, w - 6, Math.max(2, h * 0.3), 3);
+      ctx.fill();
+    }
+
+    function fillFor(i) {
+      return i === 0 ? BASE : STONES[(i * 5) % STONES.length];
+    }
+
+    /* Geometry */
+
+    function layout() {
+      W = Math.floor(Math.min(440, window.innerWidth - 32));
+      H = Math.round(W * 1.3);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      wrap.style.width = W + 'px';
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      groundY = H - 34;
+    }
+
+    // World height of the top edge of stack[i], before the camera shift.
+    function worldTop(i) {
+      let sum = 0;
+      for (let j = 0; j <= i; j++) sum += stack[j].h;
+      return groundY - sum;
+    }
+
+    function topY() {
+      return worldTop(stack.length - 1);
+    }
+
+    function hoverY() {
+      return Math.max(18, topY() + shift - 84);
+    }
+
+    // The balance point of the whole tower: each stone weighs its area.
+    function massCenter(from) {
+      let m = 0;
+      let mx = 0;
+      for (let j = from || 0; j < stack.length; j++) {
+        const a = stack[j].w * stack[j].h;
+        m += a;
+        mx += a * stack[j].x;
+      }
+      return m ? mx / m : 0.5;
+    }
+
+    function carryX() {
+      const amp = 0.2 + Math.min(score, 14) * 0.012;
+      const speed = 1.5 + Math.min(score, 20) * 0.06;
+      const x = massCenter() + Math.sin(clock * speed) * Math.min(amp, 0.42);
+      return clamp(x, carry.w / 2, 1 - carry.w / 2);
+    }
+
+    function newCarry() {
+      const top = stack[stack.length - 1];
+      const maxW = Math.min(0.5, top.w + 0.03);
+      const minW = Math.max(0.14, maxW * 0.55);
+      return { w: rand(minW, maxW), h: Math.round(rand(16, 26)) };
+    }
+
+    /* Physics */
+
+    // Each joint carries the weight of everything above it. If that weight's
+    // balance point sits beyond the edge of the stone below, the joint fails.
+    // Returns the lowest failing joint, since that is the one that goes first.
+    function findFault() {
+      for (let k = 0; k < stack.length - 1; k++) {
+        const com = massCenter(k + 1);
+        const base = stack[k];
+        const lo = base.x - base.w / 2;
+        const hi = base.x + base.w / 2;
+        if (com < lo || com > hi) {
+          return { k: k, dir: com < base.x ? -1 : 1 };
+        }
+      }
+      return null;
+    }
+
+    // Everything above joint k pivots on the edge of stone k and tips over.
+    // The stones above are removed from the tower and become a falling chunk.
+    function collapse(fault) {
+      const k = fault.k;
+      const dir = fault.dir;
+      const base = stack[k];
+
+      const pivotX = (base.x + dir * base.w / 2) * W;
+      const pivotY = worldTop(k);
+
+      const parts = [];
+      for (let j = k + 1; j < stack.length; j++) {
+        const s = stack[j];
+        parts.push({
+          dx: s.x * W - pivotX,
+          dy: worldTop(j) - pivotY,
+          w: s.w * W,
+          h: s.h,
+          fill: fillFor(j)
+        });
+      }
+
+      chunks.push({
+        parts: parts,
+        pivotX: pivotX,
+        pivotY: pivotY,
+        dir: dir,
+        angle: 0,
+        av: 0,
+        away: false,
+        vx: 0,
+        vy: 0
+      });
+
+      stack = stack.slice(0, k + 1);
+    }
+
+    // Collapses can cascade, since removing weight can shift the balance of
+    // the stones below. Keep checking until the remaining tower holds.
+    function resolveCollapses() {
+      let count = 0;
+      let fault;
+      while ((fault = findFault())) {
+        collapse(fault);
+        count++;
+      }
+      return count;
+    }
+
+    function settling() {
+      return chunks.some(c => !c.away);
+    }
+
+    /* Game flow */
+
+    function reset() {
+      stack = [{ x: 0.5, w: 0.42, h: 26 }];
+      chunks = [];
+      dropping = null;
+      debris = [];
+      score = 0;
+      lives = MAX_LIVES;
+      doomed = false;
+      shift = 0;
+      flashTime = 0;
+      state = 'ready';
+      carry = newCarry();
+      syncOverlay();
+      updateHud();
+    }
+
+    function showFlash(text) {
+      flashText = text;
+      flashTime = 1.4;
+    }
+
+    function finish() {
+      state = 'over';
+      syncOverlay();
+    }
+
+    function drop() {
+      if (state === 'over') {
+        reset();
+        return;
+      }
+      if (state === 'ready') {
+        state = 'playing';
+        syncOverlay();
+      }
+      if (state !== 'playing' || dropping || !carry || settling()) return;
+
+      const top = stack[stack.length - 1];
+      const x = carryX();
+      const lean = x - top.x;
+      const ok = Math.abs(lean) <= top.w / 2;
+
+      dropping = { x: x, w: carry.w, h: carry.h, y: hoverY(), vy: 0, ok: ok, lean: lean };
+      carry = null;
+    }
+
+    function land() {
+      const d = dropping;
+      dropping = null;
+
+      if (d.ok) {
+        stack.push({ x: d.x, w: d.w, h: d.h });
+        score = stack.length - 1;
+        if (score > best) {
+          best = score;
+          saveBest();
+        }
+
+        if (resolveCollapses() > 0) {
+          score = stack.length - 1;
+          lives--;
+          showFlash(lives > 0 ? 'The tower tipped over.' : 'The tower tipped. That was your last chance.');
+          if (lives <= 0) doomed = true;
+        } else {
+          showFlash(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
+        }
+      } else {
+        const side = d.lean >= 0 ? 1 : -1;
+        debris.push({
+          x: d.x, y: d.y, w: d.w, h: d.h,
+          vx: side * 0.25, vy: -120,
+          rot: 0, vr: side * 2.5
+        });
+        lives--;
+        showFlash(lives > 0 ? 'Off balance. Keep going.' : 'That was your last chance.');
+        if (lives <= 0) doomed = true;
+      }
+
+      carry = newCarry();
+      updateHud();
+    }
+
+    /* HUD and overlay */
+
+    function updateHud() {
+      const left = Math.max(0, lives);
+      scoreEl.textContent = score;
+      bestEl.textContent = best;
+      livesEl.textContent = '●'.repeat(left) + '○'.repeat(MAX_LIVES - left);
+    }
+
+    function syncOverlay() {
+      if (state === 'playing') {
+        overlay.hidden = true;
+        return;
+      }
+      overlay.hidden = false;
+      if (state === 'ready') {
+        ovTitle.textContent = 'Cairn';
+        ovText.textContent = 'Press Space, Enter, or tap to drop the first stone.';
+      } else {
+        ovTitle.textContent = 'The cairn fell';
+        ovText.textContent = 'You placed ' + score + (score === 1 ? ' stone' : ' stones') +
+          '. Press Space or tap to build again.';
+      }
+    }
+
+    /* Update and draw */
+
+    function update(dt) {
+      clock += dt;
+
+      // The camera keeps the top of the tower in the upper part of the board.
+      const wantShift = Math.max(0, H * 0.42 - topY());
+      shift += (wantShift - shift) * Math.min(1, dt * 4);
+
+      if (dropping) {
+        dropping.vy += GRAVITY * dt;
+        dropping.y += dropping.vy * dt;
+        const target = topY() + shift - dropping.h;
+        if (dropping.y >= target) {
+          dropping.y = target;
+          land();
+        }
+      }
+
+      // Tipping sections. Each turns faster the further it has gone, like a
+      // block levering over an edge, until it passes the point of no return.
+      chunks.forEach(c => {
+        if (!c.away) {
+          c.av += c.dir * (2.2 + 3.5 * Math.abs(c.angle)) * dt;
+          c.angle += c.av * dt;
+          if (Math.abs(c.angle) > TIP_ANGLE) {
+            c.away = true;
+            c.vx = c.dir * 90;
+            c.vy = 0;
+          }
+        } else {
+          c.vy += GRAVITY * dt;
+          c.pivotX += c.vx * dt;
+          c.pivotY += c.vy * dt;
+          c.angle += c.av * dt;
+        }
+      });
+      chunks = chunks.filter(c => !c.away || c.pivotY + shift < H + 200);
+
+      debris.forEach(d => {
+        d.vy += GRAVITY * dt;
+        d.x += d.vx * dt;
+        d.y += d.vy * dt;
+        d.rot += d.vr * dt;
+      });
+      debris = debris.filter(d => d.y < H + 120);
+
+      if (doomed && !settling() && !dropping) finish();
+
+      if (flashTime > 0) flashTime -= dt;
+    }
+
+    function draw() {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+
+      // Ground.
+      const gy = groundY + shift;
+      if (gy < H) {
+        ctx.fillStyle = GROUND;
+        ctx.fillRect(0, gy, W, H - gy);
+        ctx.fillStyle = LINE;
+        ctx.fillRect(0, gy, W, 1);
+      }
+
+      // The standing tower, from the bottom up.
+      stack.forEach((s, i) => {
+        drawStone(s.x * W, worldTop(i) + shift, s.w * W, s.h, fillFor(i));
+      });
+
+      // The stone hanging from the crane.
+      if (carry && state !== 'over') {
+        const x = carryX() * W;
+        const y = hoverY();
+        ctx.strokeStyle = LINE;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        drawStone(x, y, carry.w * W, carry.h, CARRY);
+      }
+
+      // A stone in the air.
+      if (dropping) {
+        drawStone(dropping.x * W, dropping.y, dropping.w * W, dropping.h, CARRY);
+      }
+
+      // Sections that have tipped. Each turns as one rigid piece around its pivot.
+      chunks.forEach(c => {
+        ctx.save();
+        ctx.translate(c.pivotX, c.pivotY + shift);
+        ctx.rotate(c.angle);
+        c.parts.forEach(p => drawStone(p.dx, p.dy, p.w, p.h, p.fill));
+        ctx.restore();
+      });
+
+      // Stones that missed.
+      debris.forEach(d => {
+        ctx.save();
+        ctx.translate(d.x * W, d.y + d.h / 2);
+        ctx.rotate(d.rot);
+        drawStone(0, -d.h / 2, d.w * W, d.h, '#557f6e');
+        ctx.restore();
+      });
+
+      // A short message that fades out.
+      if (flashTime > 0) {
+        ctx.globalAlpha = Math.min(1, flashTime);
+        ctx.fillStyle = '#a3b98a';
+        ctx.font = '18px Newsreader, Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(flashText, W / 2, 26);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function frame(now) {
+      const dt = lastNow ? Math.min((now - lastNow) / 1000, 0.05) : 0;
+      lastNow = now;
+
+      update(dt);
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    /* Input */
+
+    document.addEventListener('keydown', e => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Let focused buttons handle their own Space and Enter presses.
+      if (e.target.tagName === 'BUTTON') return;
+
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        drop();
+      } else if (e.key === 'r' || e.key === 'R') {
+        reset();
+      }
+    });
+
+    canvas.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      drop();
+    });
+
+    dropBtn.addEventListener('click', drop);
+    restartBtn.addEventListener('click', reset);
+
+    window.addEventListener('resize', () => {
+      layout();
+      draw();
+    });
+
+    /* Start */
+
+    layout();
+    reset();
+    bestEl.textContent = best;
+    requestAnimationFrame(frame);
+  })();
+</script>
+
+</body>
+</html>
