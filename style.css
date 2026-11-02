@@ -2,13 +2,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Handjet:wght@400;600&display=swap');
 
 :root {
-  --bg: #101413;
-  --text: #d3dbc6;
-  --heading: #9CB080;
-  --muted: #7d9583;
-  --line: #2B5748;
-  --accent: #b78cab;
-  --accent-hover: #d0a9c4;
+  --bg: #0e1211;
+  --text: #dde3d2;
+  --heading: #a3b98a;
+  --muted: #7f9686;
+  --line: #2c4d41;
+  --accent: #c39bbd;
+  --accent-hover: #e0bfd6;
   --ease: cubic-bezier(.2, .7, .2, 1);
   --font-title: "Handjet", monospace;
   --font-body: "Newsreader", Georgia, serif;
@@ -17,7 +17,6 @@
 }
 
 * { box-sizing: border-box; }
-
 html { scroll-behavior: smooth; }
 
 body {
@@ -33,46 +32,52 @@ body {
 
 ::selection { background: var(--line); color: var(--heading); }
 
-/* Page sections */
+/* Homepage masthead: only the page's top-level header */
 
-header,
-main,
-footer,
-article {
+body > header {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 56px 24px 32px;
+  border-bottom: 1px solid var(--line);
+}
+
+body > main,
+body > footer {
   max-width: var(--measure);
   margin: 0 auto;
   padding-left: 24px;
   padding-right: 24px;
 }
 
-header {
-  padding-top: 72px;
-  padding-bottom: 32px;
-  border-bottom: 1px solid var(--line);
-}
+body > main { padding-top: 32px; padding-bottom: 16px; }
 
-main {
-  padding-top: 32px;
-  padding-bottom: 16px;
-}
-
-footer {
+body > footer {
+  margin-top: 48px;
   padding-top: 20px;
   padding-bottom: 40px;
-  margin-top: 48px;
   border-top: 1px solid var(--line);
   font-size: 13px;
   color: var(--muted);
 }
 
+/* Article page */
+
 article {
-  padding-top: 16px;
-  padding-bottom: 120px;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 8px 24px 120px;
+}
+
+/* Reset any header inside an article so its label sits at the top */
+article header {
+  margin: 0 0 40px;
+  padding: 0;
+  border: 0;
 }
 
 /* Titles */
 
-header h1,
+body > header h1,
 article h1 {
   font-family: var(--font-title);
   font-weight: 600;
@@ -81,12 +86,12 @@ article h1 {
   letter-spacing: 0.01em;
 }
 
-header h1 {
+body > header h1 {
   font-size: clamp(56px, 16vw, 96px);
   line-height: 0.95;
 }
 
-header p {
+body > header p {
   margin: 14px 0 0;
   font-size: 18px;
   font-style: italic;
@@ -96,7 +101,7 @@ header p {
 article h1 {
   font-size: clamp(36px, 9vw, 56px);
   line-height: 1.05;
-  margin-bottom: 28px;
+  margin: 0 0 24px;
 }
 
 /* Section label and list */
@@ -112,7 +117,6 @@ nav h2 {
 }
 
 ul { list-style: none; padding: 0; margin: 0; }
-
 li { margin: 0 0 14px; }
 
 nav li a {
@@ -176,15 +180,15 @@ article a:hover { color: var(--accent-hover); }
 
 .back-link:hover { color: var(--accent-hover); }
 
-/* Letter page: deep mauve ground */
+/* Letter page: plum ground */
 
 body.letter {
-  background: #1f1419;
-  color: #e6d3dc;
+  background: #1d1319;
+  color: #e8d6e0;
 }
 
-body.letter header,
-body.letter footer { border-color: #4a2a38; }
+body.letter > header,
+body.letter > footer { border-color: #4a2d3f; }
 
 body.letter h1,
 body.letter nav li a { color: var(--accent); }
@@ -199,12 +203,12 @@ body.letter nav li a:hover { color: var(--accent-hover); }
   to   { opacity: 1; transform: none; }
 }
 
-header > * {
+body > header > * {
   animation: rise .9s var(--ease) both;
 }
 
-header > h1 { animation-delay: .05s; }
-header > p  { animation-delay: .15s; }
+body > header > h1 { animation-delay: .05s; }
+body > header > p  { animation-delay: .15s; }
 
 nav li {
   opacity: 0;
