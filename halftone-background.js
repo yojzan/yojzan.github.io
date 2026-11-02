@@ -355,8 +355,8 @@ void main() {
   gl.uniform3fv(U('u_colors'), colours);
 
   // Static packed uniforms (values from the shader header).
-  gl.uniform4f(U('u_shape'), 1.48, 0.88, 0.50, 0.00);
-  gl.uniform4f(U('u_surface'), 2.40, 0.91, 0.00, 1.00);
+  gl.uniform4f(U('u_shape'), 1.48, 0.88, 0.25, 0.00);
+  gl.uniform4f(U('u_surface'), 2.40, 0.91, -0.25, 1.00);
   gl.uniform4f(U('u_finish'), 0.00, 0.00, 0.000, 0.06);
   gl.uniform4f(U('u_transform'), 2926.0, 0.00, 0.00, 0.0);
   gl.uniform4f(U('u_space'), 0.00, 0.00, 0.00, 0.00); // pointer unused
