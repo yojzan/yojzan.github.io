@@ -350,7 +350,7 @@ void main() {
     parseInt(hex.slice(5, 7), 16) / 255
   ];
   const colours = new Float32Array(8 * 3);
-  ['#0E1211', '#2C4D41', '#4A6B5D', '#7F9686'].forEach((hex, i) => {
+  ['#0B1410', '#2F5C44', '#7FA06F', '#C5DDB0'].forEach((hex, i) => {
     colours.set(hexToRgb(hex), i * 3);
   });
   gl.uniform3fv(U('u_colors'), colours);
