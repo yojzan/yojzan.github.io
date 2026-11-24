@@ -1,3 +1,5 @@
+github.yojzan.io
+
 # Untamed
 
 A long-term personal website: a private library and diary of poems, articles, and other writing, added to over a lifetime.
